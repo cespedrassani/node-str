@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const Funcionario = mongoose.model('Funcionario');
 const ValidatorContract = require('../validator/validator')
 const repository = require('../repositories/funcionario-repository');
+const md5 = require('md5');
 
 exports.get = async(req, res, next) => {
     try {
@@ -52,7 +53,8 @@ exports.getByFuncao = async(req, res, next) => {
 exports.post = async(req, res, next) => {
     let contract = new ValidatorContract();
     contract.hasMinLen(req.body.nome, 3, 'O nome deve conter pelo menos 3 caracteres');
-    //contract.hasMinLen(req.body.funcao, 1, 'Deve conter pelo menos uma funcao');
+    contract.isEmail(req.body.senha, 'Deve ser um e-mail válido');
+    contract.hasMinLen(req.body.email, 8, 'A senha deve conter no mínimo 8 caracteres');
 
     if (!contract.isValid()){
         res.status(400).send(contract.errors()).end();
@@ -60,7 +62,13 @@ exports.post = async(req, res, next) => {
     }
 
     try {
-        await repository.create(req.body);
+        await repository.create({
+            nome: req.body.nome,
+            cpf: req.body.cpf,
+            dtNascimento: req.body.dtNascimento,
+            senha: md5(req.body.senha + global.SALT_KEY),
+            cidade: req.body.cidade
+        });
         res.status(201).send({
             message: 'Funcionário cadastrado!'
         });
