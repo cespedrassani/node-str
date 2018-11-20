@@ -1,9 +1,8 @@
 'use strict';
 
-const mongoose = require('mongoose');
-const Funcionario = mongoose.model('Funcionario');
 const ValidatorContract = require('../validator/validator')
 const repository = require('../repositories/funcionario-repository');
+const authService = require('../services/auth-service')
 const md5 = require('md5');
 
 exports.get = async(req, res, next) => {
@@ -12,7 +11,7 @@ exports.get = async(req, res, next) => {
         res.status(200).send(data);
     } catch (e) {
         res.status(500).send({
-            message: 'Falha ao processar requisição.'
+            error: 'Falha ao processar requisição.'
         });
     }
 };
@@ -23,7 +22,7 @@ exports.getByNome = async(req, res, next) => {
         res.status(200).send(data);
     } catch (e) {
         res.status(500).send({
-            message: 'Falha ao processar requisição.'
+            error: 'Falha ao processar requisição.'
         });
     }
 }
@@ -34,7 +33,7 @@ exports.getById = async(req, res, next) => {
         res.status(200).send(data);
     } catch (e) {
         res.status(500).send({
-            message: 'Falha ao processar requisição.'
+            error: 'Falha ao processar requisição.'
         });
     } 
 }
@@ -45,7 +44,7 @@ exports.getByFuncao = async(req, res, next) => {
         res.status(200).send(data);
     } catch (e) {
         res.status(500).send({
-            message: 'Falha ao processar requisição.'
+            error: 'Falha ao processar requisição.'
         });
     }
 }
@@ -53,8 +52,8 @@ exports.getByFuncao = async(req, res, next) => {
 exports.post = async(req, res, next) => {
     let contract = new ValidatorContract();
     contract.hasMinLen(req.body.nome, 3, 'O nome deve conter pelo menos 3 caracteres');
-    contract.isEmail(req.body.senha, 'Deve ser um e-mail válido');
-    contract.hasMinLen(req.body.email, 8, 'A senha deve conter no mínimo 8 caracteres');
+    contract.isEmail(req.body.email, 'Deve ser um e-mail válido');
+    contract.hasMinLen(req.body.senha, 8, 'A senha deve conter no mínimo 8 caracteres');
 
     if (!contract.isValid()){
         res.status(400).send(contract.errors()).end();
@@ -64,30 +63,33 @@ exports.post = async(req, res, next) => {
     try {
         await repository.create({
             nome: req.body.nome,
-            cpf: req.body.cpf,
-            dtNascimento: req.body.dtNascimento,
+            ativo: req.body.ativo,
+            email: req.body.email,
             senha: md5(req.body.senha + global.SALT_KEY),
-            cidade: req.body.cidade
+            funcoes: req.body.funcoes,
+            dtNascimento: req.body.dtNascimento,
+            cpf: req.body.cpf
         });
         res.status(201).send({
             message: 'Funcionário cadastrado!'
         });
     } catch (e) {
         res.status(500).send({
-            message: 'Falha ao processar requisição.'
+            error: 'Falha ao processar requisição.',
+            data: e
         });
 
         res.status(400).send({
-            message: 'Falha ao cadastrar funcionário.', 
+            error: 'Falha ao cadastrar funcionário.', 
             data: e
         });
     }
 };
 
 exports.put = async(req, res, next) => {
-    let contract = new ValidatorContract();
     contract.hasMinLen(req.body.nome, 3, 'O nome deve conter pelo menos 3 caracteres');
-    //contract.hasMinLen(req.body.funcao, 1, 'Deve conter pelo menos uma funcao');
+    contract.isEmail(req.body.email, 'Deve ser um e-mail válido');
+    contract.hasMinLen(req.body.senha, 8, 'A senha deve conter no mínimo 8 caracteres');
 
     if (!contract.isValid()){
         res.status(400).send(contract.errors()).end();
@@ -101,11 +103,11 @@ exports.put = async(req, res, next) => {
         });
     } catch (e) {
         res.status(500).send({
-            message: 'Falha ao processar requisição.'
+            error: 'Falha ao processar requisição.'
         });
 
         res.status(400).send({
-            message: 'Falha ao atualizar o funcionário!', 
+            error: 'Falha ao atualizar o funcionário!', 
             data: e
         });
     }
@@ -119,12 +121,80 @@ exports.delete = async(req, res, next) => {
         });
     } catch (e) {
         res.status(500).send({
-            message: 'Falha ao processar requisição.'
+            error: 'Falha ao processar requisição.'
         });
 
         res.status(400).send({
-            message: 'Falha ao remover o funcionário!', 
+            error: 'Falha ao remover o funcionário!', 
             data: e
         });
     }     
 };
+
+exports.authenticate = async(req, res, next) => {
+    try {
+        const funcionario = await repository.authenticate({
+            email: req.body.email,
+            senha: md5(req.body.senha + global.SALT_KEY)
+        });
+
+        if (!funcionario) {
+            res.status(404).send({
+                message: 'Funcionário não encontrado'
+            })
+        }
+        const token = await authService.generateToken({
+            nome: funcionario.nome, 
+            senha: funcionario.senha,
+            email: funcionario.email,
+            id: funcionario._id
+        });
+
+        res.status(201).send({
+            token:token,
+            data: {
+                email: funcionario.email,
+                nome: funcionario.nome,
+            }
+        })
+
+    } catch (e) {
+        res.status(500).send({
+            error: 'Falha ao processar requisição.'
+        });
+    }
+}
+
+exports.refreshToken = async(req, res, next) => {
+    try {
+        const token = req.body.token || req.query.token || req.headers['x-acces-token'];
+        const data = await authService.decodeToken(token);
+        
+        const funcionario = await repository.getById(data.id);
+
+        if (!funcionario) {
+            res.status(404).send({
+                message: 'Usuário ou senha inválidos'
+            })
+        }
+        const tokenData = await authService.generateToken({
+            nome: funcionario.nome, 
+            senha: funcionario.senha,
+            email: funcionario.email,
+            id: funcionario._id
+        });
+
+        res.status(201).send({
+            token: tokenData,
+            data: {
+                email: funcionario.email,
+                nome: funcionario.nome
+            }
+        })
+
+    } catch (e) {
+        res.status(500).send({
+            error: 'Falha ao processar requisição.'
+        });
+    }
+}

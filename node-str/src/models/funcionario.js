@@ -6,16 +6,15 @@ const Schema = mongoose.Schema;
 const schema = new Schema({
     nome: {
         type: String,
-        required: [true, 'O nome é obrigatório'],
-        trim: true,
+        required: [true, 'O nome é obrigatório']
     },
     cpf: {
-        type: number,
-        required: [true, 'O CPF é obrigatório'],
+        type: Number,
+        required: [true, 'O CPF é obrigatório']
     },
     dtNascimento: {
         type: Date,
-        required: [true, 'A idade é obrigatória'],
+        required: [true, 'A idade é obrigatória']
     },
     funcoes: [{
         type: String,
@@ -32,10 +31,11 @@ const schema = new Schema({
         required: [true, 'A senha é obrigatória'],
         trim: true
     },
-    cidade: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Cidade'    
-    }
+    email: {
+        type: String,
+        required: true,
+        trim: true
+    },
 });
 
-module.exports = mongoose.model('Funcionario', schema);
+module.exports = mongoose.model('funcionario', schema);

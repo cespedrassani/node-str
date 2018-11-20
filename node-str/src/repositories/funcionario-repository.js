@@ -1,12 +1,12 @@
 'use strict';
 
 const mongoose = require('mongoose');
-const Funcionario = mongoose.model('Funcionario');
+const Funcionario = mongoose.model('funcionario');
 
 exports.get = async () => {
     const res = await Funcionario.find({
         ativo: true
-    }, 'nome funcoes idade');
+    }, 'nome funcoes dtNascimento');
     return res;
 }
 
@@ -15,7 +15,7 @@ exports.getByNome = async (name) => {
         .find({
             nome: name,
             ativo: true
-        }, 'nome funcoes idade');
+        }, 'nome funcoes dtNascimento');
     return res;
 }
 
@@ -29,7 +29,7 @@ exports.getByFuncao = async (funcao) => {
         .find({
             funcoes: funcao,
             ativo: true
-        }, 'nome funcoes idade');
+        }, 'nome funcoes dtNascimento');
     return res;
 }
 
@@ -43,7 +43,7 @@ exports.update = async (id, data) => {
         .findByIdAndUpdate(id, {
             $set: {
                 nome: data.nome,
-                idade: data.idade,
+                dtNascimento: data.dtNascimento,
                 funcoes: data.funcao
             }
         });
@@ -51,4 +51,11 @@ exports.update = async (id, data) => {
 
 exports.delete = async (id) => {
     await Funcionario.findByIdAndRemove(id);
+}
+
+exports.authenticate = async (data) => {
+    const rest = await Funcionario.findOne({
+        senha: data.senha,
+        email: data.nome,
+    });
 }

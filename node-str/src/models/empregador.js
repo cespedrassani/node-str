@@ -1,3 +1,5 @@
+
+
 'use strict'
 
 const mongoose = require('mongoose');
@@ -6,19 +8,13 @@ const Schema = mongoose.Schema;
 const schema = new Schema({
     nome: {
         type: String,
-        required: [true, 'O nome é obrigatório'],
-        trim: true,
+        required: [true, 'O nome é obrigatório']
     },
     cnpj: {
-        type: number,
+        type: Number,
         required: [true, 'O CNPJ é obrigatório'],
         trim: true
     },
-    ramos: [{
-        type: String,
-        required: [true, 'A função é obrigatória'],
-        trim: true
-    }],
     ativo: {
         type: Boolean,
         required: true,
@@ -29,10 +25,11 @@ const schema = new Schema({
         required: [true, 'A senha é obrigatória'],
         trim: true
     },
-    cidade: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Cidade'    
-    }
+    email: {
+        type: String,
+        required: true,
+        trim: true
+    },
 });
 
-module.exports = mongoose.model('Estabelecimento', schema);
+module.exports = mongoose.model('empregador', schema);

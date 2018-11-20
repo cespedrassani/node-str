@@ -6,10 +6,9 @@ const Schema = mongoose.Schema;
 const schema = new Schema({
     nome: {
         type: String,
-        required: [true, 'O nome é obrigatório'],
-        trim: true,
-        index: true
-    },
+        required: true,
+        trim: true
+    }
 });
 
-module.exports = mongoose.model('Cidade', schema);
+module.exports = mongoose.model('Tipo', schema);
